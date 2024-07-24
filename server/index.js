@@ -7,6 +7,8 @@ mongoose.connect(config.connectionString);
 const User = require("./models/user.model");
 const Note = require("./models/note.model");
 
+const PORT = process.env.PORT || 8000;
+
 
 const express = require("express");
 const cors = require("cors");
@@ -307,6 +309,8 @@ app.put("/update-note-pinned/:noteId", authenticateToken, async (req, res) => {
 
 
 
-app.listen(8000);
+app.listen(PORT,()=>{
+    console.log(`Port started on ${PORT}`);
+});
 
 module.exports = app;
