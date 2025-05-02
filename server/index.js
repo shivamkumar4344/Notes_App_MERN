@@ -6,6 +6,8 @@ mongoose.connect(config.connectionString);
 
 const User = require("./models/user.model");
 const Note = require("./models/note.model");
+const bcrypt = require("bcrypt");
+const saltRounds = 10;
 
 const PORT = process.env.PORT || 8000;
 
@@ -62,24 +64,39 @@ app.post("/create-account", async (req, res) => {
         });
     }
 
-    const user = new User({
-        fullName,
-        email,
-        password,
-    });
+    try {
+        // Hash the password before storing it
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        
+        const user = new User({
+            fullName,
+            email,
+            password: hashedPassword,
+        });
 
-    await user.save();
+        await user.save();
 
-    const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "36000m",
-    });
+        const accessToken = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, {
+            expiresIn: "36000m",
+        });
 
-    return res.json({
-        error: false,
-        user,
-        accessToken,
-        message: "Registration Successful",
-    })
+        return res.json({
+            error: false,
+            user: {
+                fullName: user.fullName,
+                email: user.email,
+                _id: user._id,
+                createdOn: user.createdOn,
+            },
+            accessToken,
+            message: "Registration Successful",
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: true,
+            message: "An error occurred during registration"
+        });
+    }
 })
 
 app.post("/login", async (req, res) => {
@@ -101,26 +118,42 @@ app.post("/login", async (req, res) => {
         return res.status(400).json({ message: "User not found" });
     }
 
-    if (userInfo.email == email && userInfo.password == password) {
-        const user = { user: userInfo };
-        const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-            expiresIn: "36000m",
-        });
+    try {
+        // Compare the provided password with the stored hashed password
+        const passwordMatch = await bcrypt.compare(password, userInfo.password);
+        
+        if (passwordMatch) {
+            const user = { 
+                user: {
+                    fullName: userInfo.fullName,
+                    email: userInfo.email,
+                    _id: userInfo._id,
+                    createdOn: userInfo.createdOn
+                } 
+            };
+            
+            const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+                expiresIn: "36000m",
+            });
 
-        return res.json({
-            error: false,
-            message: "Login Successful",
-            email,
-            accessToken,
-        });
-    } else {
-        return res.status(400).json({
+            return res.json({
+                error: false,
+                message: "Login Successful",
+                email,
+                accessToken,
+            });
+        } else {
+            return res.status(400).json({
+                error: true,
+                message: "Invalid credentials",
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({
             error: true,
-            message: "Invalid credentials",
+            message: "An error occurred during login"
         });
     }
-
-
 });
 
 app.get("/get-user", authenticateToken,async (req, res) => {
