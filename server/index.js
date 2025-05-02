@@ -18,19 +18,21 @@ const app = express();
 const jwt = require("jsonwebtoken");
 const { authenticateToken } = require("./utilities");
 
-// Enable preflight across all routes
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://notes-app-mern.vercel.app");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Credentials", "true");
-  
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-  
-  next();
-});
+// Use cors middleware with options
+const corsOptions = {
+  origin: 'https://notes-app-mern.vercel.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+// Apply CORS to all routes
+app.use(cors(corsOptions));
+
+// Handle OPTIONS method explicitly
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 
@@ -43,6 +45,15 @@ app.get("/", (req, res) => {
             notes: ["/add-note", "/edit-note/:noteId", "/get-all-notes", "/delete-note/:noteId", "/update-note-pinned/:noteId"]
         }
     });
+});
+
+// Add specific OPTIONS handler for create-account
+app.options('/create-account', (req, res) => {
+  res.header("Access-Control-Allow-Origin", "https://notes-app-mern.vercel.app");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.status(200).end();
 });
 
 //create account 
