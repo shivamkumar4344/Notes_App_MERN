@@ -27,7 +27,14 @@ app.use(
 );
 
 app.get("/", (req, res) => {
-    res.json({ data: "hello" });
+    res.json({ 
+        message: "Welcome to Notes App API",
+        version: "1.0.0",
+        endpoints: {
+            auth: ["/create-account", "/login", "/get-user"],
+            notes: ["/add-note", "/edit-note/:noteId", "/get-all-notes", "/delete-note/:noteId", "/update-note-pinned/:noteId"]
+        }
+    });
 });
 
 //create account 
